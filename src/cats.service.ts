@@ -2,36 +2,49 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.services';
 import { CreateCatDto } from './dto/create-cat.dto';
-import { plainToClass } from 'class-transformer';
+import { UpdateCatDto } from './dto/update-cat.dto';
+import { GetAllCatsDto } from './dto/getall-cat.dto';
+import { Cat } from './cat.interface';
 
 @Injectable()
 export class CatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(cat: { name: string; age: number; breed: string }) {
-    return this.prisma.cat.create({
+  async getAllCats(filters?: GetAllCatsDto): Promise<Cat[]> {
+    return this.prisma.cat.findMany({
+      skip: filters?.offset || 0,
+      take: filters?.limit || 10,
+    });
+  }
+  
+
+  async getCatById(id: string): Promise<Cat> {
+    const cat = await this.prisma.cat.findUnique({ where: { id } });
+    if (!cat) {
+      throw new Error(`Cat with ID ${id} not found`);
+    }
+    return cat;
+  }
+  
+
+  async createCat(createCatDto: CreateCatDto): Promise<void> {
+    await this.prisma.cat.create({
       data: {
-        name: cat.name,
-        age: cat.age,
-        breed: cat.breed,
+        name: createCatDto.name,
+        age: createCatDto.age,
+        breed: createCatDto.breed,
       },
     });
   }
 
-  async findAll() {
-    const cats = await this.prisma.cat.findMany();
-    return plainToClass(CreateCatDto, cats);
+  async updateCat(id: string, updateCatDto: UpdateCatDto): Promise<void> {
+    await this.prisma.cat.update({
+      where: { id },
+      data: { ...updateCatDto },
+    });
   }
 
-  async update(id: string, updateCat: Partial<{ name: string; age: number; breed: string }>) {
-    const cat = await this.prisma.cat.findUnique({ where: { id } });
-    if (!cat) {
-      throw new Error(`Cat with id ${id} not found`);
-    }
-
-    return this.prisma.cat.update({
-      where: { id },
-      data: updateCat,
-    });
+  async deleteCat(id: string): Promise<void> {
+    await this.prisma.cat.delete({ where: { id } });
   }
 }
