@@ -1,8 +1,20 @@
 /* eslint-disable prettier/prettier */
-export interface Cat {
-    name: string;
-    age: number;
-    breed: string;
-    id: string; 
+import { Exclude, Expose } from 'class-transformer';
+
+export class Cat {
+  @Exclude() 
+  id: string;
+
+  @Expose() 
+  name: string;
+
+  @Expose()
+  age: number;
+
+  @Expose()
+  breed: string;
+
+  constructor(partial: Partial<Cat>) {
+    Object.assign(this, partial);
   }
-  
+}

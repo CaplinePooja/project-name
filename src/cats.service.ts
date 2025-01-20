@@ -1,28 +1,37 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
-import { Cat } from './cat.interface'; 
+import { PrismaService } from './prisma.services';
+import { CreateCatDto } from './dto/create-cat.dto';
+import { plainToClass } from 'class-transformer';
 
 @Injectable()
 export class CatsService {
-  private readonly cats: Cat[] = [];
+  constructor(private prisma: PrismaService) {}
 
-  create(cat: Cat) {
-    this.cats.push(cat);
+  async create(cat: { name: string; age: number; breed: string }) {
+    return this.prisma.cat.create({
+      data: {
+        name: cat.name,
+        age: cat.age,
+        breed: cat.breed,
+      },
+    });
   }
 
-  findAll(): Cat[] {
-    return this.cats;
+  async findAll() {
+    const cats = await this.prisma.cat.findMany();
+    return plainToClass(CreateCatDto, cats);
   }
 
-  update(id: string, updatecat: Partial<Cat>): string {
-    const index = this.cats.findIndex((cat) =>cat.id === id);
-
-    if (index === -1) {
-      return `id not found${id}`
+  async update(id: string, updateCat: Partial<{ name: string; age: number; breed: string }>) {
+    const cat = await this.prisma.cat.findUnique({ where: { id } });
+    if (!cat) {
+      throw new Error(`Cat with id ${id} not found`);
     }
 
-    this.cats[index] = {...this.cats[index], ...updatecat};
-    return `cat with ${id}`;
-    
+    return this.prisma.cat.update({
+      where: { id },
+      data: updateCat,
+    });
   }
 }
